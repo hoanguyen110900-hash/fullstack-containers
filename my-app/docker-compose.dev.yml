@@ -1,0 +1,53 @@
+name: my-app-dev
+
+services:
+  frontend:
+    image: phonebook-frontend-dev
+    build:
+      context: ./frontend
+      dockerfile: dev.Dockerfile
+    volumes:
+      - ./frontend:/usr/src/app
+      - /usr/src/app/node_modules
+
+  backend:
+    image: phonebook-backend-dev
+    build:
+      context: ./backend
+      dockerfile: dev.Dockerfile
+    volumes:
+      - ./backend:/usr/src/app
+      - /usr/src/app/node_modules
+    environment:
+      PORT: 3001
+      NODE_ENV: development
+      MONGODB_URI: mongodb://root:example@mongo:27017/phonebook?authSource=admin
+    depends_on:
+      mongo:
+        condition: service_healthy
+
+  mongo:
+    image: mongo:7
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: example
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: ['CMD', 'mongosh', '--host', 'mongo', '--eval', "db.adminCommand('ping')"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  nginx:
+    image: nginx:1.29-alpine
+    ports:
+      - '8080:80'
+    volumes:
+      - ./nginx.dev.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - frontend
+      - backend
+
+volumes:
+  mongo_data:

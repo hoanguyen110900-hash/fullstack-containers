@@ -22,11 +22,13 @@ test.describe('Todo App E2E Tests', () => {
     
     await todoInput.fill(testTodoText);
     
-    // Submit the form (look for submit button or press Enter)
-    await page.keyboard.press('Enter');
-    
-    // Wait a moment for the todo to be added
-    await page.waitForTimeout(500);
+    const createResponse = page.waitForResponse(response =>
+      response.request().method() === 'POST' &&
+      new URL(response.url()).pathname.endsWith('/todos')
+    );
+    await todoInput.press('Enter');
+    const response = await createResponse;
+    expect(response.status(), `POST ${response.url()}`).toBe(200);
     
     // Verify the todo appears in the list
     await expect(page.getByText(testTodoText)).toBeVisible();
